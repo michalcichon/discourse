@@ -463,13 +463,23 @@ class ImportScripts::Smf2 < ImportScripts::Base
     TRTR_TABLE.each { |from, to| cleaned_name.gsub!(from, to) }
     cleaned_name.gsub!(/\s/, "_")
     cleaned_name.gsub!(/[^\w_\.\-]/, "")
-    legacy_name =
-      "#{attachment_id}_#{cleaned_name.gsub(".", "_")}#{Digest::MD5.hexdigest(cleaned_name)}"
-
-    [filename, "#{attachment_id}_#{file_hash}", legacy_name].map do |name|
-        File.join(options.smfroot, "attachments", name)
-      end
-      .detect { |file| File.exist?(file) }
+    ext = File.extname(filename.to_s)
+    legacy_name = "#{attachment_id}_#{cleaned_name.gsub(".", "_")}#{Digest::MD5.hexdigest(cleaned_name)}"
+    base = "#{attachment_id}_#{file_hash}"
+    candidates = [
+      filename,
+      cleaned_name,
+      base,
+      "#{base}#{ext}",
+      "#{base}#{ext.downcase}",
+      "#{base}.dat",
+      legacy_name,
+      "#{legacy_name}#{ext}",
+      "#{legacy_name}.dat"
+    ].compact.uniq
+    candidates
+      .map { |name| File.join(options.smfroot, "attachments", name) }
+      .detect { |path| File.exist?(path) }
   end
 
   def decode_entities(*args)
